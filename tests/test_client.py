@@ -2,7 +2,7 @@
 
 import unittest
 from unittest.mock import patch, MagicMock
-from py3pocket import Client, PocketError
+from py3pocket import Client, authorize, PocketError
 from requests import Session
 
 
@@ -14,6 +14,7 @@ class StubClient(Client):
         self._Client__session = Session()
 
 
+# noinspection PyUnresolvedReferences
 class TestClient(unittest.TestCase):
     """
     Test Case of Pocket API Client.
@@ -82,8 +83,8 @@ class TestClient(unittest.TestCase):
                 with self.assertRaises(PocketError) as e:
                     Client('', '', '')
 
-        self.assertEqual(str(e.exception), 'Pocket Authorizing via OAuth Error: possible to not yet complete the ' +
-                                           'authorization. Access %s and allow to permissions.' % 'localhost')
+        self.assertEqual(str(e.exception), 'Pocket Authorizing via OAuth Error: possible to not yet complete the authorization. ' +
+                                           'Please execute py3pocket.authorize.')
 
     def test_getting_access_token_via_oauth_error(self):
 
@@ -172,3 +173,24 @@ class TestClient(unittest.TestCase):
 
         self.assertEqual(resp, {'item_id': 1})
 
+
+# noinspection PyUnresolvedReferences
+class TestAuthorize(unittest.TestCase):
+
+    def test_getting_request_token_via_oauth_error(self):
+
+        post_obj = type('', (), {'status_code': 400})
+
+        with patch.object(Session, 'post', MagicMock(return_value=post_obj)):
+            with self.assertRaises(PocketError) as e:
+                authorize('')
+
+        self.assertEqual(str(e.exception), 'Pocket Getting Request Token via OAuth Error')
+
+    def test_getting_access_token_via_oauth_error(self):
+        """Very complicated, avoid this unit test."""
+        pass
+
+    def test_authorize_success(self):
+        """Very complicated, avoid this unit test."""
+        pass

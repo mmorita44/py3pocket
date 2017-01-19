@@ -13,11 +13,21 @@ python setup.py install
 
 # Usage
 
+First execute py3pocket.authorize, authorize your application on a browser.
+
 ```python
 import py3pocket
 
-py3pocket.Client('consumer key', 'username', 'password')
-print(pocket.retrieve()) # {'complete': 1, 'search_meta': {'search_type': 'normal'}, 'error': None, ...
+py3pocket.authorize('consumer key')
+```
+
+Then you can make authenticated requests to the Pocket API.
+
+```python
+import py3pocket
+
+client = py3pocket.Client('consumer key', 'username', 'password')
+print(client.retrieve()) # {'complete': 1, 'search_meta': {'search_type': 'normal'}, 'error': None, ...
 
 ```
 

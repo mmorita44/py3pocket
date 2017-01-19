@@ -1,5 +1,10 @@
 # -*- coding: utf-8 -*-
+
 import re
+import urllib.parse
+import webbrowser
+from http.server import HTTPServer, SimpleHTTPRequestHandler
+
 from requests import Session
 from requests.exceptions import RequestException
 
@@ -49,7 +54,7 @@ class Client:
                                   allow_redirects=False)
         if resp.status_code != 302:
             raise PocketError('Pocket Authorizing via OAuth Error: possible to not yet complete the authorization. ' +
-                              'Access %s and allows to permissions.' % resp.request.url, response=resp)
+                              'Please execute py3pocket.authorize.', response=resp)
 
         # get access token via OAuth
         resp = self.__session.post('https://getpocket.com/v3/oauth/authorize',
@@ -104,6 +109,71 @@ class Client:
             raise PocketError('Pocket Retrieving Error', response=resp)
 
         return resp.json()
+
+
+def authorize(consumer_key: str, port: int=80):
+    """Pocket Authorization. Must execute the function before using Client. If done, not need to do again
+
+    :param consumer_key: consumer key for Pocket Authorization.
+    :param port: port no of local server.
+    """
+
+    def server_handler_class(request_token: str):
+        """Calling ServerHandler class.
+
+        :param request_token:
+        :return: ServerHandler class
+        """
+
+        class ServerHandler(SimpleHTTPRequestHandler):
+            """When redirecting from Pocket, getting an access token for confirm the authorization completion,
+            display the result.
+            """
+
+            def __init__(self, *args, **kwargs):
+
+                self.__consumer_key = consumer_key
+                self.__request_token = request_token
+                super().__init__(*args, **kwargs)
+
+            def do_GET(self):
+
+                # get access token via OAuth
+                response = Session().post('https://getpocket.com/v3/oauth/authorize',
+                                          json={'consumer_key': self.__consumer_key, 'code': self.__request_token},
+                                          headers={'X-Accept': 'application/json'})
+                self.send_response(response.status_code)
+                self.send_header('Content-type', 'text/html')
+                self.end_headers()
+
+                if response.status_code == 200:
+                    title, body = ('Congratulations', 'Authorization is complete. Next to py3pocket.Client, ' +
+                                   'enjoy interacting with Pocket.')
+                else:
+                    title, body = ('Pocket Getting Access Token via OAuth Error',
+                                   'Authorization is Failed. Please try again.')
+
+                self.wfile.write(bytes('<html> <head><title>%s</title> </head> <body>%s</body>' % (title, body),
+                                       'UTF-8'))
+
+        return ServerHandler
+
+    redirect_uri = 'http://localhost:%i' % port
+
+    # get request token via OAuth
+    resp = Session().post('https://getpocket.com/v3/oauth/request',
+                          json={'consumer_key': consumer_key, 'redirect_uri': redirect_uri},
+                          headers={'X-Accept': 'application/json'})
+    if resp.status_code != 200:
+        raise PocketError('Pocket Getting Request Token via OAuth Error', response=resp)
+    code = resp.json()['code']
+
+    # authorize via OAuth
+    webbrowser.open('https://getpocket.com/auth/authorize?' +
+                    urllib.parse.urlencode({'request_token': code, 'redirect_uri': redirect_uri}))
+
+    # run local server.
+    HTTPServer(('', port), server_handler_class(code)).handle_request()
 
 
 class PocketError(RequestException):
