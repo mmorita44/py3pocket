@@ -26,7 +26,7 @@ class TestClient(unittest.TestCase):
 
     def test_initial_access_error(self):
 
-        get_obj = type('', (), {'status_code': 400})
+        get_obj = type('', (), dict(status_code=400))
 
         with patch.object(Session, 'get', MagicMock(return_value=get_obj)):
             with self.assertRaises(PocketError) as e:
@@ -36,7 +36,7 @@ class TestClient(unittest.TestCase):
 
     def test_login_error(self):
 
-        get_obj = type('', (), {'status_code': 200, 'content': '<input name="form_check" value="value">'.encode()})
+        get_obj = type('', (), dict(status_code=200, content='<input name="form_check" value="value">'.encode()))
         post_obj = type('', (), {'status_code': 400})
 
         with patch.object(Session, 'get', MagicMock(return_value=get_obj)):
@@ -48,8 +48,8 @@ class TestClient(unittest.TestCase):
 
     def test_confirming_login_result_error(self):
 
-        get_obj = type('', (), {'status_code': 200, 'content': '<input name="form_check" value="value">'.encode()})
-        post_obj = type('', (), {'status_code': 200, 'json': lambda: {'status': 0}})
+        get_obj = type('', (), dict(status_code=200, content='<input name="form_check" value="value">'.encode()))
+        post_obj = type('', (), dict(status_code=200, json=lambda: dict(status=0)))
 
         with patch.object(Session, 'get', MagicMock(return_value=get_obj)):
             with patch.object(Session, 'post', MagicMock(return_value=post_obj)):
@@ -60,9 +60,11 @@ class TestClient(unittest.TestCase):
 
     def test_getting_request_token_via_oauth_error(self):
 
-        get_obj = type('', (), {'status_code': 200, 'content': '<input name="form_check" value="value">'.encode()})
-        post_obj = [type('', (), {'status_code': 200, 'json': lambda: {'status': 1}}),
-                    type('', (), {'status_code': 400})]
+        get_obj = type('', (), dict(status_code=200, content='<input name="form_check" value="value">'.encode()))
+        post_obj = [
+            type('', (), dict(status_code=200, json=lambda: dict(status=1))),
+            type('', (), dict(status_code=400))
+        ]
 
         with patch.object(Session, 'get', MagicMock(return_value=get_obj)):
             with patch.object(Session, 'post', MagicMock(side_effect=post_obj)):
@@ -73,26 +75,37 @@ class TestClient(unittest.TestCase):
 
     def test_authorizing_via_oauth_error(self):
 
-        get_obj = [type('', (), {'status_code': 200, 'content': '<input name="form_check" value="value">'.encode()}),
-                   type('', (), {'status_code': 400, 'request': type('', (), {'url': 'localhost'})})]
-        post_obj = [type('', (), {'status_code': 200, 'json': lambda: {'status': 1}}),
-                    type('', (), {'status_code': 200, 'json': lambda: {'code': 'code'}})]
+        get_obj = [
+            type('', (), dict(status_code=200, content='<input name="form_check" value="value">'.encode())),
+            type('', (), dict(status_code=400, request=type('', (), dict(url='localhost'))))
+        ]
+        post_obj = [
+            type('', (), dict(status_code=200, json=lambda: dict(status=1))),
+            type('', (), dict(status_code=200, json=lambda: dict(code='code')))
+        ]
 
         with patch.object(Session, 'get', MagicMock(side_effect=get_obj)):
             with patch.object(Session, 'post', MagicMock(side_effect=post_obj)):
                 with self.assertRaises(PocketError) as e:
                     Client('', '', '')
 
-        self.assertEqual(str(e.exception), 'Pocket Authorizing via OAuth Error: possible to not yet complete the authorization. ' +
-                                           'Please execute py3pocket.authorize.')
+        self.assertEqual(
+            str(e.exception),
+            'Pocket Authorizing via OAuth Error: possible to not yet complete the authorization. ' +
+            'Please execute py3pocket.authorize.'
+        )
 
     def test_getting_access_token_via_oauth_error(self):
 
-        get_obj = [type('', (), {'status_code': 200, 'content': '<input name="form_check" value="value">'.encode()}),
-                   type('', (), {'status_code': 302})]
-        post_obj = [type('', (), {'status_code': 200, 'json': lambda: {'status': 1}}),
-                    type('', (), {'status_code': 200, 'json': lambda: {'code': 'code'}}),
-                    type('', (), {'status_code': 400})]
+        get_obj = [
+            type('', (), dict(status_code=200, content='<input name="form_check" value="value">'.encode())),
+            type('', (), dict(status_code=302))
+        ]
+        post_obj = [
+            type('', (), dict(status_code=200, json=lambda: dict(status=1))),
+            type('', (), dict(status_code=200, json=lambda: dict(code='code'))),
+            type('', (), dict(status_code=400))
+        ]
 
         with patch.object(Session, 'get', MagicMock(side_effect=get_obj)):
             with patch.object(Session, 'post', MagicMock(side_effect=post_obj)):
@@ -103,11 +116,15 @@ class TestClient(unittest.TestCase):
 
     def test_init_success(self):
 
-        get_obj = [type('', (), {'status_code': 200, 'content': '<input name="form_check" value="value">'.encode()}),
-                   type('', (), {'status_code': 302})]
-        post_obj = [type('', (), {'status_code': 200, 'json': lambda: {'status': 1}}),
-                    type('', (), {'status_code': 200, 'json': lambda: {'code': 'code'}}),
-                    type('', (), {'status_code': 200, 'json': lambda: {'access_token': 'access token'}})]
+        get_obj = [
+            type('', (), dict(status_code=200, content='<input name="form_check" value="value">'.encode())),
+            type('', (), dict(status_code=302))
+        ]
+        post_obj = [
+            type('', (), dict(status_code=200, json=lambda: dict(status=1))),
+            type('', (), dict(status_code=200, json=lambda: dict(code='code'))),
+            type('', (), dict(status_code=200, json=lambda: dict(access_token='access token')))
+        ]
 
         with patch.object(Session, 'get', MagicMock(side_effect=get_obj)):
             with patch.object(Session, 'post', MagicMock(side_effect=post_obj)):
@@ -118,7 +135,7 @@ class TestClient(unittest.TestCase):
 
     def test_adding_error(self):
 
-        post_obj = type('', (), {'status_code': 400})
+        post_obj = type('', (), dict(status_code=400))
 
         with patch.object(Session, 'post', MagicMock(return_value=post_obj)):
             with self.assertRaises(PocketError) as e:
@@ -128,16 +145,16 @@ class TestClient(unittest.TestCase):
 
     def test_adding_success(self):
 
-        post_obj = type('', (), {'status_code': 200, 'json': lambda: {'item_id': 1}})
+        post_obj = type('', (), dict(status_code=200, json=lambda: dict(item_id=1)))
 
         with patch.object(Session, 'post', MagicMock(return_value=post_obj)):
             resp = TestClient.__client.add({})
 
-        self.assertEqual(resp, {'item_id': 1})
+        self.assertEqual(resp, dict(item_id=1))
 
     def test_modifying_error(self):
 
-        post_obj = type('', (), {'status_code': 400})
+        post_obj = type('', (), dict(status_code=400))
 
         with patch.object(Session, 'post', MagicMock(return_value=post_obj)):
             with self.assertRaises(PocketError) as e:
@@ -147,16 +164,16 @@ class TestClient(unittest.TestCase):
 
     def test_modifying_success(self):
 
-        post_obj = type('', (), {'status_code': 200, 'json': lambda: {'item_id': 1}})
+        post_obj = type('', (), dict(status_code=200, json=lambda: dict(item_id=1)))
 
         with patch.object(Session, 'post', MagicMock(return_value=post_obj)):
             resp = TestClient.__client.modify({})
 
-        self.assertEqual(resp, {'item_id': 1})
+        self.assertEqual(resp, dict(item_id=1))
 
     def test_retrieving_error(self):
 
-        post_obj = type('', (), {'status_code': 400})
+        post_obj = type('', (), dict(status_code=400))
 
         with patch.object(Session, 'post', MagicMock(return_value=post_obj)):
             with self.assertRaises(PocketError) as e:
@@ -166,12 +183,12 @@ class TestClient(unittest.TestCase):
 
     def test_retrieving_success(self):
 
-        post_obj = type('', (), {'status_code': 200, 'json': lambda: {'item_id': 1}})
+        post_obj = type('', (), dict(status_code=200, json=lambda: dict(item_id=1)))
 
         with patch.object(Session, 'post', MagicMock(return_value=post_obj)):
             resp = TestClient.__client.retrieve()
 
-        self.assertEqual(resp, {'item_id': 1})
+        self.assertEqual(resp, dict(item_id=1))
 
 
 # noinspection PyUnresolvedReferences
@@ -179,7 +196,7 @@ class TestAuthorize(unittest.TestCase):
 
     def test_getting_request_token_via_oauth_error(self):
 
-        post_obj = type('', (), {'status_code': 400})
+        post_obj = type('', (), dict(status_code=400))
 
         with patch.object(Session, 'post', MagicMock(return_value=post_obj)):
             with self.assertRaises(PocketError) as e:
